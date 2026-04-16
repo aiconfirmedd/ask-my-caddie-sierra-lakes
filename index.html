@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0b3d0b">
+<title>Ask My Caddie — Sierra Lakes</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overscroll-behavior: none; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    background: linear-gradient(160deg, #0b3d0b 0%, #0f5f1a 60%, #164d1c 100%);
+    color: #f5f5f0;
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom) 16px;
+  }
+  header { text-align: center; padding: 14px 0 6px; }
+  header h1 { font-size: 16px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: #e8f5d8; }
+  header .sub { font-size: 11px; opacity: 0.7; margin-top: 2px; }
+  .status-bar { display: flex; justify-content: space-between; align-items: center;
+    background: rgba(0,0,0,0.25); border-radius: 14px; padding: 10px 14px; margin: 10px 0; font-size: 13px; }
+  .gps-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; background: #f59e0b; }
+  .gps-dot.ok { background: #22c55e; } .gps-dot.err { background: #ef4444; }
+  .hole-card { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 18px; padding: 14px 16px; margin-bottom: 12px; }
+  .hole-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .hole-title { font-size: 12px; opacity: 0.7; text-transform: uppercase; letter-spacing: 1px; }
+  .hole-num { font-size: 46px; font-weight: 800; line-height: 1; color: #fff; }
+  .hole-meta { font-size: 13px; opacity: 0.85; }
+  select { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 10px; padding: 8px 10px; font-size: 14px; font-weight: 600; }
+  select option { background: #0b3d0b; color: #fff; }
+  .score-row { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1); }
+  .score-ctrl { display: flex; align-items: center; gap: 14px; }
+  .score-btn { width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
+    color: #fff; font-size: 22px; font-weight: 700; cursor: pointer; }
+  .score-btn:active { background: rgba(255,255,255,0.3); }
+  .score-val { font-size: 28px; font-weight: 800; min-width: 30px; text-align: center; }
+  .score-total { font-size: 13px; opacity: 0.75; text-align: right; }
+  .score-total b { font-size: 18px; color: #fff; display: block; }
+  .mic-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px 0; }
+  .mic-btn { width: 200px; height: 200px; border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #f9fafb, #d4d4d4 70%, #a3a3a3);
+    border: 6px solid rgba(255,255,255,0.85);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.45), 0 0 0 0 rgba(34,197,94,0.6);
+    display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.1s; position: relative; }
+  .mic-btn:active { transform: scale(0.96); }
+  .mic-btn.listening { background: radial-gradient(circle at 30% 30%, #fca5a5, #dc2626 70%, #991b1b); animation: pulse 1.2s ease-out infinite; }
+  .mic-btn.speaking { background: radial-gradient(circle at 30% 30%, #86efac, #22c55e 70%, #15803d); }
+  @keyframes pulse {
+    0% { box-shadow: 0 10px 40px rgba(0,0,0,0.45), 0 0 0 0 rgba(220,38,38,0.7); }
+    100% { box-shadow: 0 10px 40px rgba(0,0,0,0.45), 0 0 0 30px rgba(220,38,38,0); }
+  }
+  .mic-icon { width: 80px; height: 80px; }
+  .mic-label { margin-top: 14px; font-size: 15px; opacity: 0.9; letter-spacing: 0.5px; text-align: center; }
+  .reply-box { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.15); border-radius: 16px;
+    padding: 16px 18px; margin: 12px 0; min-height: 72px; font-size: 17px; line-height: 1.35; color: #f0fdf4; }
+  .reply-box .you { font-size: 12px; opacity: 0.6; margin-bottom: 4px; font-style: italic; }
+  .reply-box .caddie { font-weight: 600; }
+  .footer-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .action-btn { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); color: #fff;
+    padding: 14px 12px; border-radius: 14px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: center; }
+  .action-btn:active { background: rgba(255,255,255,0.22); }
+  .action-btn .ic { display: block; font-size: 22px; margin-bottom: 4px; }
+  .end-round { background: rgba(220,38,38,0.3); border: 1px solid rgba(220,38,38,0.6); color: #fff;
+    padding: 11px; border-radius: 12px; font-size: 13px; font-weight: 600; cursor: pointer; text-align: center; margin-bottom: 8px; }
+  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(6px);
+    z-index: 100; display: none; padding: 20px; overflow-y: auto; }
+  .modal-bg.show { display: block; }
+  .modal { background: #0f2f10; border-radius: 20px; padding: 20px; color: #fff; max-width: 600px; margin: 20px auto; border: 1px solid rgba(255,255,255,0.2); }
+  .modal h2 { font-size: 20px; margin-bottom: 14px; }
+  .modal h3 { font-size: 14px; opacity: 0.8; margin: 14px 0 6px; text-transform: uppercase; letter-spacing: 1px; }
+  .modal .close { float: right; background: none; border: 1px solid rgba(255,255,255,0.3); color: #fff; padding: 6px 12px; border-radius: 8px; cursor: pointer; }
+  .timeline-item { background: rgba(255,255,255,0.06); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; font-size: 13px; }
+  .timeline-item .ts { font-size: 11px; opacity: 0.6; }
+  .timeline-item .h { color: #86efac; font-weight: 700; }
+  .timeline-item.shot { border-left: 3px solid #fbbf24; }
+  .timeline-item.rec { border-left: 3px solid #60a5fa; }
+  .grid-score { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; font-size: 11px; text-align: center; margin-top: 6px; }
+  .grid-score div { padding: 6px 2px; background: rgba(255,255,255,0.08); border-radius: 6px; }
+  .grid-score .h { font-weight: 700; background: rgba(0,0,0,0.3); }
+  .grid-score .par3 { background: rgba(96,165,250,0.15); }
+  .grid-score .par5 { background: rgba(251,146,60,0.15); }
+  .logging { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; flex-direction: column;
+    align-items: center; justify-content: center; z-index: 200; color: #fff; text-align: center; padding: 30px; }
+  .logging.show { display: flex; }
+  .logging .ring { width: 140px; height: 140px; border: 6px solid rgba(220,38,38,0.5); border-top-color: #dc2626; border-radius: 50%; animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.85);
+    color: #fff; padding: 10px 16px; border-radius: 10px; font-size: 13px; opacity: 0; transition: opacity 0.3s; z-index: 300; pointer-events: none; }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Ask My Caddie</h1>
+    <div class="sub">Sierra Lakes Golf Club · Fontana, CA</div>
+  </header>
+  <div class="status-bar">
+    <div><span id="gpsDot" class="gps-dot"></span><span id="gpsText">Locating…</span></div>
+    <div id="weatherText" style="opacity:0.85">—</div>
+  </div>
+  <div class="hole-card">
+    <div class="hole-top">
+      <div>
+        <div class="hole-title">Current Hole</div>
+        <div class="hole-num" id="holeNum">—</div>
+        <div class="hole-meta" id="holeMeta">Par — · — yd</div>
+      </div>
+      <div>
+        <select id="holePick" aria-label="Pick hole">
+          <option value="auto">Auto</option>
+        </select>
+      </div>
+    </div>
+    <div class="score-row">
+      <div class="score-ctrl">
+        <button class="score-btn" id="scoreDown" aria-label="Minus stroke">&minus;</button>
+        <div class="score-val" id="scoreVal">0</div>
+        <button class="score-btn" id="scoreUp" aria-label="Plus stroke">+</button>
+      </div>
+      <div class="score-total">Total<b id="scoreTotal">0</b></div>
+    </div>
+  </div>
+  <div class="mic-wrap">
+    <button class="mic-btn" id="micBtn" aria-label="Ask my caddie">
+      <svg class="mic-icon" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="9" y="2" width="6" height="12" rx="3"/>
+        <path d="M5 10a7 7 0 0 0 14 0M12 17v4M8 21h8"/>
+      </svg>
+    </button>
+    <div class="mic-label" id="micLabel">Tap and speak</div>
+  </div>
+  <div class="reply-box" id="replyBox">
+    <div class="caddie">Enable location and tap the mic. I'll give you distances, wind, and the play.</div>
+  </div>
+  <div class="footer-row">
+    <button class="action-btn" id="logShotBtn"><span class="ic">🏌️</span>Log Shot</button>
+    <button class="action-btn" id="summaryBtn"><span class="ic">📋</span>Round Summary</button>
+  </div>
+  <button class="end-round" id="endRoundBtn">End Round &amp; Start Fresh</button>
+  <div class="modal-bg" id="summaryModal">
+    <div class="modal">
+      <button class="close" id="closeSummary">Close</button>
+      <h2>Round Summary</h2>
+      <div id="summaryMeta"></div>
+      <h3>Scorecard</h3>
+      <div id="scoreGrid"></div>
+      <h3>Timeline</h3>
+      <div id="timelineBox"></div>
+    </div>
+  </div>
+  <div class="logging" id="loggingOverlay">
+    <div class="ring"></div>
+    <div style="margin-top:20px;font-size:18px;">Listening…</div>
+    <div id="logHint" style="margin-top:10px;opacity:0.7;font-size:14px;">Describe your shot and tap anywhere to stop</div>
+  </div>
+  <div class="toast" id="toast"></div>
+<script>
+const COURSE = {"name":"Sierra Lakes Golf Club","location":"Fontana, CA","center":{"lat":34.1450698,"lon":-117.4393004},"holes":[{"hole":1,"par":4,"hcp":11,"black_yd":363,"blue_yd":345,"white_yd":328,"red_yd":286,"tee":{"lat":34.1444135,"lon":-117.4431957},"pin":{"lat":34.1416783,"lon":-117.4445136},"hazards":[{"type":"bunker","position":"approach","side":"center","lat":34.14234651555556,"lon":-117.44444522666667,"dist_from_tee_yd":281,"dist_to_pin_yd":82},{"type":"bunker","position":"greenside","side":"center","lat":34.141814603448275,"lon":-117.44457858965517,"dist_from_tee_yd":345,"dist_to_pin_yd":18}]},{"hole":2,"par":4,"hcp":7,"black_yd":381,"blue_yd":362,"white_yd":346,"red_yd":301,"tee":{"lat":34.1409972,"lon":-117.4426511},"pin":{"lat":34.1395239,"lon":-117.4458854},"hazards":[{"type":"bunker","position":"fairway","side":"left","lat":34.14020045833333,"lon":-117.44357338333334,"dist_from_tee_yd":134,"dist_to_pin_yd":247},{"type":"bunker","position":"fairway","side":"left","lat":34.14023583076923,"lon":-117.4436776076923,"dist_from_tee_yd":139,"dist_to_pin_yd":238},{"type":"bunker","position":"fairway","side":"left","lat":34.139828515384615,"lon":-117.44341824615384,"dist_from_tee_yd":162,"dist_to_pin_yd":251},{"type":"bunker","position":"approach","side":"center","lat":34.13998496071428,"lon":-117.4447759357143,"dist_from_tee_yd":247,"dist_to_pin_yd":125},{"type":"bunker","position":"approach","side":"center","lat":34.13963375185184,"lon":-117.44520065555557,"dist_from_tee_yd":306,"dist_to_pin_yd":70},{"type":"bunker","position":"greenside","side":"center","lat":34.13969456428571,"lon":-117.44589140000002,"dist_from_tee_yd":363,"dist_to_pin_yd":21},{"type":"bunker","position":"greenside","side":"center","lat":34.139452448571426,"lon":-117.4457360457143,"dist_from_tee_yd":363,"dist_to_pin_yd":17}]},{"hole":3,"par":5,"hcp":9,"black_yd":534,"blue_yd":512,"white_yd":488,"red_yd":456,"tee":{"lat":34.1391127,"lon":-117.4458802},"pin":{"lat":34.1409544,"lon":-117.4411297},"hazards":[{"type":"bunker","position":"greenside","side":"center","lat":34.140814049999996,"lon":-117.44130699999998,"dist_from_tee_yd":505,"dist_to_pin_yd":25},{"type":"bunker","position":"greenside","side":"center","lat":34.14107544615385,"lon":-117.44115288461538,"dist_from_tee_yd":532,"dist_to_pin_yd":15},{"type":"bunker","position":"approach","side":"center","lat":34.14135639999999,"lon":-117.4408826666667,"dist_from_tee_yd":572,"dist_to_pin_yd":55},{"type":"bunker","position":"approach","side":"center","lat":34.14152342608695,"lon":-117.44086120434784,"dist_from_tee_yd":584,"dist_to_pin_yd":74}]},{"hole":4,"par":3,"hcp":17,"black_yd":184,"blue_yd":166,"white_yd":145,"red_yd":123,"tee":{"lat":34.1404147,"lon":-117.4414402},"pin":{"lat":34.1394168,"lon":-117.4401},"hazards":[{"type":"bunker","position":"fairway","side":"left","lat":34.140717675000005,"lon":-117.4413767,"dist_from_tee_yd":37,"dist_to_pin_yd":204},{"type":"water_hazard","position":"greenside","side":"center","lat":34.13956625526317,"lon":-117.4403617368421,"dist_from_tee_yd":150,"dist_to_pin_yd":32},{"type":"bunker","position":"greenside","side":"center","lat":34.139584516666666,"lon":-117.44005896666668,"dist_from_tee_yd":172,"dist_to_pin_yd":21},{"type":"bunker","position":"greenside","side":"center","lat":34.139358468750004,"lon":-117.43992900624998,"dist_from_tee_yd":199,"dist_to_pin_yd":19}]},{"hole":5,"par":4,"hcp":1,"black_yd":433,"blue_yd":408,"white_yd":380,"red_yd":318,"tee":{"lat":34.1395667,"lon":-117.4394376},"pin":{"lat":34.1427703,"lon":-117.441285},"hazards":[{"type":"bunker","position":"greenside","side":"center","lat":34.14279964705883,"lon":-117.44109854705884,"dist_from_tee_yd":427,"dist_to_pin_yd":19},{"type":"bunker","position":"greenside","side":"center","lat":34.1426811,"lon":-117.44142835862073,"dist_from_tee_yd":428,"dist_to_pin_yd":18},{"type":"bunker","position":"greenside","side":"center","lat":34.14293912105263,"lon":-117.4413900263158,"dist_from_tee_yd":455,"dist_to_pin_yd":23}]},{"hole":6,"par":3,"hcp":15,"black_yd":195,"blue_yd":175,"white_yd":161,"red_yd":89,"tee":{"lat":34.1430487,"lon":-117.4408089},"pin":{"lat":34.1445948,"lon":-117.4406278},"hazards":[{"type":"water_hazard","position":"approach","side":"center","lat":34.144125158974354,"lon":-117.4406216717949,"dist_from_tee_yd":132,"dist_to_pin_yd":57},{"type":"bunker","position":"greenside","side":"center","lat":34.14451388823529,"lon":-117.44054075882352,"dist_from_tee_yd":180,"dist_to_pin_yd":13},{"type":"bunker","position":"greenside","side":"center","lat":34.1447326,"lon":-117.44066267727273,"dist_from_tee_yd":205,"dist_to_pin_yd":17},{"type":"water_hazard","position":"approach","side":"left","lat":34.14476436551725,"lon":-117.44112866551724,"dist_from_tee_yd":211,"dist_to_pin_yd":54},{"type":"bunker","position":"greenside","side":"center","lat":34.14478992,"lon":-117.44054904666665,"dist_from_tee_yd":213,"dist_to_pin_yd":25}]},{"hole":7,"par":4,"hcp":3,"black_yd":395,"blue_yd":374,"white_yd":355,"red_yd":312,"tee":{"lat":34.1452758,"lon":-117.4414454},"pin":{"lat":34.146809,"lon":-117.438325},"hazards":[{"type":"bunker","position":"approach","side":"right","lat":34.14558909411765,"lon":-117.4389312529412,"dist_from_tee_yd":256,"dist_to_pin_yd":160},{"type":"bunker","position":"approach","side":"right","lat":34.14566168,"lon":-117.43883016666668,"dist_from_tee_yd":267,"dist_to_pin_yd":148},{"type":"bunker","position":"approach","side":"center","lat":34.146151910714295,"lon":-117.4389865214286,"dist_from_tee_yd":269,"dist_to_pin_yd":104},{"type":"bunker","position":"greenside","side":"center","lat":34.14676342666667,"lon":-117.43849400666667,"dist_from_tee_yd":348,"dist_to_pin_yd":18},{"type":"bunker","position":"greenside","side":"center","lat":34.146969923076924,"lon":-117.43827265384614,"dist_from_tee_yd":380,"dist_to_pin_yd":20},{"type":"bunker","position":"greenside","side":"center","lat":34.146901423076926,"lon":-117.43819242307691,"dist_from_tee_yd":382,"dist_to_pin_yd":17}]},{"hole":8,"par":5,"hcp":5,"black_yd":569,"blue_yd":545,"white_yd":526,"red_yd":462,"tee":{"lat":34.1477255,"lon":-117.438532},"pin":{"lat":34.1477212,"lon":-117.4441259},"hazards":[{"type":"bunker","position":"approach","side":"center","lat":34.14744369444445,"lon":-117.44335095000002,"dist_from_tee_yd":486,"dist_to_pin_yd":85},{"type":"bunker","position":"approach","side":"center","lat":34.14789178421052,"lon":-117.44378879473686,"dist_from_tee_yd":529,"dist_to_pin_yd":40},{"type":"bunker","position":"greenside","side":"center","lat":34.1475342882353,"lon":-117.44390504117646,"dist_from_tee_yd":541,"dist_to_pin_yd":32},{"type":"bunker","position":"greenside","side":"center","lat":34.14755213076924,"lon":-117.44402136923078,"dist_from_tee_yd":553,"dist_to_pin_yd":23},{"type":"bunker","position":"greenside","side":"center","lat":34.14778419629631,"lon":-117.4443183,"dist_from_tee_yd":582,"dist_to_pin_yd":21}]},{"hole":9,"par":4,"hcp":13,"black_yd":316,"blue_yd":301,"white_yd":288,"red_yd":268,"tee":{"lat":34.1477212,"lon":-117.4446065},"pin":{"lat":34.145597,"lon":-117.4427236},"hazards":[{"type":"bunker","position":"approach","side":"center","lat":34.14615123888888,"lon":-117.44361070555556,"dist_from_tee_yd":216,"dist_to_pin_yd":112},{"type":"bunker","position":"approach","side":"center","lat":34.14609544,"lon":-117.44349042000002,"dist_from_tee_yd":227,"dist_to_pin_yd":98},{"type":"bunker","position":"approach","side":"center","lat":34.14568189375,"lon":-117.443073396875,"dist_from_tee_yd":292,"dist_to_pin_yd":37},{"type":"bunker","position":"greenside","side":"center","lat":34.14569647500001,"lon":-117.4426356875,"dist_from_tee_yd":316,"dist_to_pin_yd":15},{"type":"bunker","position":"greenside","side":"center","lat":34.14546521153846,"lon":-117.44262926923078,"dist_from_tee_yd":339,"dist_to_pin_yd":19}]},{"hole":10,"par":4,"hcp":10,"black_yd":416,"blue_yd":396,"white_yd":375,"red_yd":328,"tee":{"lat":34.1444578,"lon":-117.4434118},"pin":{"lat":34.1424106,"lon":-117.4463511},"hazards":[{"type":"bunker","position":"approach","side":"center","lat":34.143038359999984,"lon":-117.44499333428573,"dist_from_tee_yd":235,"dist_to_pin_yd":157},{"type":"bunker","position":"greenside","side":"center","lat":34.14255260555555,"lon":-117.44621118888888,"dist_from_tee_yd":365,"dist_to_pin_yd":22},{"type":"bunker","position":"greenside","side":"center","lat":34.14230221739131,"lon":-117.4462339695652,"dist_from_tee_yd":387,"dist_to_pin_yd":18},{"type":"bunker","position":"greenside","side":"center","lat":34.142371392307695,"lon":-117.44656419230768,"dist_from_tee_yd":406,"dist_to_pin_yd":22},{"type":"bunker","position":"greenside","side":"center","lat":34.14223069166666,"lon":-117.44650304166667,"dist_from_tee_yd":412,"dist_to_pin_yd":27}]},{"hole":11,"par":4,"hcp":8,"black_yd":415,"blue_yd":389,"white_yd":366,"red_yd":330,"tee":{"lat":34.1418752,"lon":-117.44691},"pin":{"lat":34.1387144,"lon":-117.4483071},"hazards":[{"type":"bunker","position":"greenside","side":"center","lat":34.138667575999996,"lon":-117.448119012,"dist_from_tee_yd":409,"dist_to_pin_yd":20}]},{"hole":12,"par":4,"hcp":14,"black_yd":403,"blue_yd":376,"white_yd":354,"red_yd":286,"tee":{"lat":34.1390185,"lon":-117.4488194},"pin":{"lat":34.1419909,"lon":-117.4473602},"hazards":[{"type":"water_hazard","position":"fairway","side":"right","lat":34.139617191489364,"lon":-117.44832861063826,"dist_from_tee_yd":88,"dist_to_pin_yd":305},{"type":"bunker","position":"approach","side":"center","lat":34.14090392380952,"lon":-117.44783139999998,"dist_from_tee_yd":250,"dist_to_pin_yd":140},{"type":"bunker","position":"approach","side":"center","lat":34.14100037894737,"lon":-117.44789120526318,"dist_from_tee_yd":258,"dist_to_pin_yd":132},{"type":"bunker","position":"approach","side":"center","lat":34.141770336,"lon":-117.447849368,"dist_from_tee_yd":349,"dist_to_pin_yd":56},{"type":"bunker","position":"greenside","side":"center","lat":34.141821173913044,"lon":-117.44739699130434,"dist_from_tee_yd":370,"dist_to_pin_yd":21}]},{"hole":13,"par":3,"hcp":18,"black_yd":162,"blue_yd":146,"white_yd":130,"red_yd":108,"tee":{"lat":34.1426804,"lon":-117.4473291},"pin":{"lat":34.1439181,"lon":-117.447769},"hazards":[{"type":"bunker","position":"approach","side":"center","lat":34.14346120217391,"lon":-117.44768164130431,"dist_from_tee_yd":101,"dist_to_pin_yd":56},{"type":"bunker","position":"greenside","side":"center","lat":34.143973461111116,"lon":-117.44796142222224,"dist_from_tee_yd":170,"dist_to_pin_yd":21}]},{"hole":14,"par":4,"hcp":4,"black_yd":381,"blue_yd":362,"white_yd":344,"red_yd":305,"tee":{"lat":34.1446162,"lon":-117.4480795},"pin":{"lat":34.1442565,"lon":-117.4517121},"hazards":[{"type":"bunker","position":"fairway","side":"right","lat":34.144822813157894,"lon":-117.44867146052634,"dist_from_tee_yd":65,"dist_to_pin_yd":314},{"type":"bunker","position":"greenside","side":"center","lat":34.144400417777774,"lon":-117.45163222222216,"dist_from_tee_yd":359,"dist_to_pin_yd":19},{"type":"bunker","position":"greenside","side":"center","lat":34.144146075,"lon":-117.45189517500002,"dist_from_tee_yd":388,"dist_to_pin_yd":23},{"type":"bunker","position":"greenside","side":"center","lat":34.144229875,"lon":-117.45194797499998,"dist_from_tee_yd":392,"dist_to_pin_yd":24}]},{"hole":15,"par":5,"hcp":12,"black_yd":511,"blue_yd":491,"white_yd":478,"red_yd":444,"tee":{"lat":34.1447361,"lon":-117.4511998},"pin":{"lat":34.1455713,"lon":-117.4463821},"hazards":[{"type":"water_hazard","position":"fairway","side":"right","lat":34.14450309117647,"lon":-117.45099433529413,"dist_from_tee_yd":35,"dist_to_pin_yd":482},{"type":"bunker","position":"approach","side":"center","lat":34.14550317333333,"lon":-117.44697244333332,"dist_from_tee_yd":436,"dist_to_pin_yd":60},{"type":"bunker","position":"greenside","side":"center","lat":34.14533601578948,"lon":-117.44646901578948,"dist_from_tee_yd":482,"dist_to_pin_yd":30},{"type":"bunker","position":"greenside","side":"center","lat":34.14544297878788,"lon":-117.44641560909092,"dist_from_tee_yd":489,"dist_to_pin_yd":16},{"type":"bunker","position":"approach","side":"center","lat":34.145893362857144,"lon":-117.44601523428572,"dist_from_tee_yd":540,"dist_to_pin_yd":54}]},{"hole":16,"par":4,"hcp":2,"black_yd":435,"blue_yd":409,"white_yd":384,"red_yd":331,"tee":{"lat":34.1460467,"lon":-117.4467237},"pin":{"lat":34.1491944,"lon":-117.4485762},"hazards":[{"type":"bunker","position":"fairway","side":"center","lat":34.146861891428564,"lon":-117.44711680285717,"dist_from_tee_yd":107,"dist_to_pin_yd":319},{"type":"bunker","position":"fairway","side":"right","lat":34.146357525,"lon":-117.44560784999996,"dist_from_tee_yd":118,"dist_to_pin_yd":456},{"type":"bunker","position":"fairway","side":"right","lat":34.146462738461544,"lon":-117.44558943076922,"dist_from_tee_yd":125,"dist_to_pin_yd":448},{"type":"bunker","position":"greenside","side":"center","lat":34.149024280000006,"lon":-117.44865447500004,"dist_from_tee_yd":411,"dist_to_pin_yd":22},{"type":"bunker","position":"greenside","side":"center","lat":34.14921532,"lon":-117.448402164,"dist_from_tee_yd":421,"dist_to_pin_yd":18}]},{"hole":17,"par":3,"hcp":16,"black_yd":181,"blue_yd":169,"white_yd":153,"red_yd":127,"tee":{"lat":34.1495284,"lon":-117.4482399},"pin":{"lat":34.1482265,"lon":-117.4473653},"hazards":[{"type":"bunker","position":"greenside","side":"center","lat":34.14845289,"lon":-117.44744153,"dist_from_tee_yd":153,"dist_to_pin_yd":29},{"type":"bunker","position":"greenside","side":"center","lat":34.14834673,"lon":-117.44755061,"dist_from_tee_yd":160,"dist_to_pin_yd":24},{"type":"bunker","position":"greenside","side":"center","lat":34.14842533636363,"lon":-117.44731999090908,"dist_from_tee_yd":163,"dist_to_pin_yd":25},{"type":"bunker","position":"greenside","side":"center","lat":34.14820416,"lon":-117.44758328,"dist_from_tee_yd":174,"dist_to_pin_yd":22},{"type":"bunker","position":"greenside","side":"center","lat":34.1482969,"lon":-117.44721276666668,"dist_from_tee_yd":182,"dist_to_pin_yd":18},{"type":"bunker","position":"approach","side":"right","lat":34.14803329333333,"lon":-117.44777100666668,"dist_from_tee_yd":188,"dist_to_pin_yd":47},{"type":"bunker","position":"greenside","side":"center","lat":34.14806914,"lon":-117.44747051000002,"dist_from_tee_yd":194,"dist_to_pin_yd":22},{"type":"bunker","position":"approach","side":"right","lat":34.147973704,"lon":-117.44763093599998,"dist_from_tee_yd":199,"dist_to_pin_yd":41},{"type":"bunker","position":"approach","side":"right","lat":34.147839956521736,"lon":-117.44817770434784,"dist_from_tee_yd":205,"dist_to_pin_yd":94}]},{"hole":18,"par":5,"hcp":6,"black_yd":531,"blue_yd":509,"white_yd":489,"red_yd":450,"tee":{"lat":34.1478368,"lon":-117.4472153},"pin":{"lat":34.1444663,"lon":-117.4440069},"hazards":[{"type":"water_hazard","position":"approach","side":"center","lat":34.14535951511627,"lon":-117.44445856511628,"dist_from_tee_yd":410,"dist_to_pin_yd":118},{"type":"bunker","position":"greenside","side":"center","lat":34.14445174,"lon":-117.44429928666666,"dist_from_tee_yd":506,"dist_to_pin_yd":29},{"type":"bunker","position":"greenside","side":"center","lat":34.14445702142857,"lon":-117.44417009285712,"dist_from_tee_yd":513,"dist_to_pin_yd":16},{"type":"bunker","position":"greenside","side":"center","lat":34.144439989285715,"lon":-117.443829475,"dist_from_tee_yd":535,"dist_to_pin_yd":18}]}]};
+const LS = { round:'askcaddie.round.v1', shots:'askcaddie.shots.v1', recs:'askcaddie.recs.v1', scores:'askcaddie.scores.v1' };
+let state = { roundId:null, roundStart:null, curHole:1, autoHole:true, gps:null, weather:null, lastWeatherFetch:0, scores:{}, shots:[], recs:[] };
+const $ = id => document.getElementById(id);
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(window.__tt); window.__tt=setTimeout(function(){t.classList.remove('show');}, 2200); }
+function toRad(d){ return d*Math.PI/180; } function toDeg(r){ return r*180/Math.PI; }
+function haversineYd(a,b){ const R=6371000; const dlat=toRad(b.lat-a.lat), dlon=toRad(b.lon-a.lon); const la1=toRad(a.lat), la2=toRad(b.lat); const h=Math.sin(dlat/2)*Math.sin(dlat/2)+Math.cos(la1)*Math.cos(la2)*Math.sin(dlon/2)*Math.sin(dlon/2); return Math.round(2*R*Math.asin(Math.sqrt(h))*1.09361); }
+function bearing(from,to){ const f1=toRad(from.lat), f2=toRad(to.lat); const dL=toRad(to.lon-from.lon); const y=Math.sin(dL)*Math.cos(f2); const x=Math.cos(f1)*Math.sin(f2)-Math.sin(f1)*Math.cos(f2)*Math.cos(dL); return (toDeg(Math.atan2(y,x))+360)%360; }
+function compass(deg){ const d=['N','NE','E','SE','S','SW','W','NW']; return d[Math.round(deg/45)%8]; }
+function save(){ localStorage.setItem(LS.round,JSON.stringify({id:state.roundId,start:state.roundStart,curHole:state.curHole,autoHole:state.autoHole})); localStorage.setItem(LS.scores,JSON.stringify(state.scores)); localStorage.setItem(LS.shots,JSON.stringify(state.shots)); localStorage.setItem(LS.recs,JSON.stringify(state.recs)); }
+function load(){ try{ const r=JSON.parse(localStorage.getItem(LS.round)||'null'); if(r){ state.roundId=r.id; state.roundStart=r.start; state.curHole=r.curHole||1; state.autoHole=r.autoHole!==false; } state.scores=JSON.parse(localStorage.getItem(LS.scores)||'{}'); state.shots=JSON.parse(localStorage.getItem(LS.shots)||'[]'); state.recs=JSON.parse(localStorage.getItem(LS.recs)||'[]'); }catch(e){} if(!state.roundId){ state.roundId=Date.now().toString(36); state.roundStart=new Date().toISOString(); save(); } }
+function detectHole(gps){ let best=1,bestScore=Infinity; for(const h of COURSE.holes){ const dTee=haversineYd(gps,h.tee); const dPin=haversineYd(gps,h.pin); const mid={lat:(h.tee.lat+h.pin.lat)/2,lon:(h.tee.lon+h.pin.lon)/2}; const dMid=haversineYd(gps,mid); const s=Math.min(dTee,dPin,dMid); if(s<bestScore){ bestScore=s; best=h.hole; } } return bestScore<350?best:null; }
+async function fetchWeather(force){ const now=Date.now(); if(!force && state.weather && (now-state.lastWeatherFetch)<300000) return state.weather; try{ const url='https://api.open-meteo.com/v1/forecast?latitude='+COURSE.center.lat+'&longitude='+COURSE.center.lon+'&current=temperature_2m,wind_speed_10m,wind_direction_10m,weather_code&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto'; const r=await fetch(url,{cache:'no-store'}); const j=await r.json(); const c=j.current||{}; state.weather={ wind_mph:Math.round(c.wind_speed_10m||0), wind_dir_deg:c.wind_direction_10m||0, wind_dir_cardinal:compass(c.wind_direction_10m||0), temp_f:Math.round(c.temperature_2m||0), code:c.weather_code }; state.lastWeatherFetch=now; updateWeatherUI(); return state.weather; }catch(e){ return null; } }
+function updateWeatherUI(){ if(!state.weather){ $('weatherText').textContent='—'; return; } const w=state.weather; $('weatherText').textContent=w.temp_f+'°F · '+w.wind_mph+'mph '+w.wind_dir_cardinal; }
+function windEffect(hole,weather){ if(!weather||weather.wind_mph<3) return null; const pinB=bearing(hole.tee,hole.pin); const windTo=(weather.wind_dir_deg+180)%360; let diff=windTo-pinB; while(diff>180)diff-=360; while(diff<-180)diff+=360; const a=Math.abs(diff); let label; if(a<30)label='helping'; else if(a>150)label='into you'; else if(diff>0)label='off the right'; else label='off the left'; return { label:label, mph:weather.wind_mph }; }
+function nearestHazards(hole,gps){ const out=[]; for(const hz of hole.hazards){ const d=haversineYd(gps,{lat:hz.lat,lon:hz.lon}); out.push(Object.assign({},hz,{dist_yd:d})); } out.sort((a,b)=>a.dist_yd-b.dist_yd); return out; }
+function generateReply(transcript,hole,gps,weather){
+  const distToPin=haversineYd(gps,hole.pin);
+  const distToTee=haversineYd(gps,hole.tee);
+  const onTee=distToTee<35;
+  const nearGreen=distToPin<40;
+  const t=(transcript||'').toLowerCase();
+  const hazards=nearestHazards(hole,gps).filter(h=>h.dist_to_pin_yd<distToPin+10);
+  const wind=windEffect(hole,weather);
+  if(/clear|carry|over the/.test(t)){
+    const b=hazards.find(h=>/bunker/i.test(h.type) && h.position!=='greenside');
+    const w=hazards.find(h=>/water/i.test(h.type));
+    const target=w||b;
+    if(target){ const dHaz=haversineYd(gps,{lat:target.lat,lon:target.lon}); const carry=dHaz+8; return carry+' to carry the '+(target.type==='water_hazard'?'water':'bunker')+', play it firm.'; }
+  }
+  if(onTee){
+    const teeYd=hole.white_yd;
+    const doglegHaz=hole.hazards.find(h=>h.position==='fairway');
+    let parts=[teeYd+' to the pin'];
+    if(hole.par===3){
+      const gs=hole.hazards.find(h=>h.position==='greenside');
+      if(gs) parts.push((gs.type==='water_hazard'?'water':'bunker')+' '+(gs.side==='center'?'front':gs.side));
+      else parts.push('aim center');
+    } else {
+      if(doglegHaz) parts.push('aim '+(doglegHaz.side==='left'?'right':'left')+' of the '+doglegHaz.side+' bunker at '+doglegHaz.dist_from_tee_yd);
+      else parts.push('aim center fairway');
+    }
+    if(wind && wind.mph>=8) parts.push(wind.mph+' '+wind.label);
+    return parts.join(', ')+'.';
+  }
+  if(nearGreen){
+    const gs=hazards.filter(h=>h.position==='greenside');
+    let reply=distToPin+' to the pin';
+    if(gs[0]) reply+=', '+(gs[0].type==='water_hazard'?'water':'bunker')+' '+(gs[0].side==='center'?'short':gs[0].side);
+    else reply+=', clean look';
+    if(wind && wind.mph>=10) reply+=', '+wind.mph+' '+wind.label;
+    return reply+'.';
+  }
+  let parts=[distToPin+' to the pin'];
+  const gs=hazards.find(h=>h.position==='greenside');
+  const approach=hazards.find(h=>h.position==='approach');
+  if(gs){
+    const side=gs.side==='center'?'front':gs.side;
+    parts.push(gs.type==='water_hazard'?('water '+side+' at '+gs.dist_to_pin_yd):('bunker '+side+' at '+gs.dist_to_pin_yd));
+  } else if(approach){
+    const myToApproach=haversineYd(gps,{lat:approach.lat,lon:approach.lon});
+    parts.push((approach.type==='water_hazard'?'water':'bunker')+' at '+myToApproach);
+  }
+  if(wind && wind.mph>=8) parts.push(wind.mph+' '+wind.label);
+  if(/aim|play|line|strategy|best play|what should/i.test(t)){
+    const leftCount=hazards.filter(h=>h.side==='left').length;
+    const rightCount=hazards.filter(h=>h.side==='right').length;
+    if(rightCount>leftCount && rightCount>0) parts.splice(1,0,'aim center-left');
+    else if(leftCount>rightCount && leftCount>0) parts.splice(1,0,'aim center-right');
+    else parts.splice(1,0,'aim center');
+  }
+  return parts.join(', ')+'.';
+}
+function speak(text){ if(!('speechSynthesis' in window)) return; window.speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(text); u.rate=1.05; u.pitch=0.95; u.volume=1.0; const voices=window.speechSynthesis.getVoices(); const pref=voices.find(v=>/en[-_]us/i.test(v.lang) && /male|daniel|alex|fred/i.test(v.name))||voices.find(v=>/en[-_]us/i.test(v.lang))||voices[0]; if(pref) u.voice=pref; $('micBtn').classList.add('speaking'); u.onend=function(){ $('micBtn').classList.remove('speaking'); }; u.onerror=function(){ $('micBtn').classList.remove('speaking'); }; window.speechSynthesis.speak(u); }
+let recognition=null;
+function ensureRecognition(){ if(recognition) return recognition; const SR=window.SpeechRecognition||window.webkitSpeechRecognition; if(!SR) return null; recognition=new SR(); recognition.lang='en-US'; recognition.interimResults=false; recognition.continuous=false; recognition.maxAlternatives=1; return recognition; }
+function renderHole(){
+  const h=COURSE.holes.find(x=>x.hole===state.curHole)||COURSE.holes[0];
+  $('holeNum').textContent=h.hole;
+  $('holeMeta').textContent='Par '+h.par+' · '+h.white_yd+' yd · HCP '+h.hcp;
+  const score=state.scores[h.hole]||0;
+  $('scoreVal').textContent=score;
+  let total=0,played=0,parSum=0;
+  for(const k in state.scores){ const s=state.scores[k]; if(s>0){ total+=s; const hh=COURSE.holes.find(x=>x.hole===parseInt(k)); if(hh)parSum+=hh.par; played++; } }
+  const rel=total-parSum;
+  const relStr=played===0?'':(rel===0?'E':(rel>0?'+'+rel:''+rel));
+  $('scoreTotal').textContent=played?(total+' ('+relStr+')'):'0';
+}
+function setHole(num,manual){ state.curHole=num; if(manual){ state.autoHole=false; $('holePick').value=String(num); } renderHole(); save(); }
+function watchGPS(){ if(!('geolocation' in navigator)){ $('gpsText').textContent='No GPS'; $('gpsDot').classList.add('err'); return; }
+  navigator.geolocation.watchPosition(function(pos){
+    state.gps={lat:pos.coords.latitude, lon:pos.coords.longitude, acc:pos.coords.accuracy, ts:Date.now()};
+    $('gpsDot').classList.remove('err'); $('gpsDot').classList.add('ok');
+    $('gpsText').textContent='GPS ±'+Math.round(pos.coords.accuracy)+'m';
+    if(state.autoHole){ const d=detectHole(state.gps); if(d && d!==state.curHole) setHole(d); }
+  }, function(err){ $('gpsDot').classList.remove('ok'); $('gpsDot').classList.add('err'); $('gpsText').textContent='GPS blocked'; }, { enableHighAccuracy:true, maximumAge:3000, timeout:20000 });
+}
+async function askCaddie(){
+  const rec=ensureRecognition(); if(!rec){ toast('Voice not supported. Use Chrome/Safari.'); return; }
+  if(!state.gps){ toast('Waiting for GPS…'); return; }
+  fetchWeather();
+  const mic=$('micBtn'); mic.classList.add('listening'); $('micLabel').textContent='Listening…';
+  try{
+    rec.onresult=function(ev){ const transcript=ev.results[0][0].transcript; handleCaddieQuery(transcript); };
+    rec.onerror=function(e){ mic.classList.remove('listening'); $('micLabel').textContent='Tap and speak'; if(e.error!=='no-speech') toast('Voice error: '+e.error); if(e.error==='no-speech') handleCaddieQuery('pin distance'); };
+    rec.onend=function(){ mic.classList.remove('listening'); $('micLabel').textContent='Tap and speak'; };
+    rec.start();
+  } catch(e){ mic.classList.remove('listening'); handleCaddieQuery('pin distance'); }
+}
+async function handleCaddieQuery(transcript){
+  const hole=COURSE.holes.find(x=>x.hole===state.curHole)||COURSE.holes[0];
+  const gps=state.gps;
+  const weather=await fetchWeather();
+  const reply=generateReply(transcript,hole,gps,weather);
+  const distToPin=haversineYd(gps,hole.pin);
+  $('replyBox').innerHTML='<div class="you">You: '+escapeHTML(transcript)+'</div><div class="caddie">'+escapeHTML(reply)+'</div>';
+  state.recs.push({ hole:hole.hole, ts:new Date().toISOString(), transcript:transcript, reply:reply, dist:distToPin, lat:gps.lat, lon:gps.lon, wind_mph:weather&&weather.wind_mph, wind_dir:weather&&weather.wind_dir_cardinal });
+  save();
+  speak(reply);
+}
+function escapeHTML(s){ return String(s).replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+function logShot(){
+  const rec=ensureRecognition(); if(!rec){ toast('Voice not supported.'); return; }
+  const overlay=$('loggingOverlay'); overlay.classList.add('show');
+  try{
+    rec.onresult=function(ev){ const transcript=ev.results[0][0].transcript; state.shots.push({ hole:state.curHole, ts:new Date().toISOString(), transcript:transcript, lat:state.gps?state.gps.lat:null, lon:state.gps?state.gps.lon:null }); save(); overlay.classList.remove('show'); toast('Logged: '+transcript); };
+    rec.onerror=function(e){ overlay.classList.remove('show'); if(e.error!=='no-speech') toast('Voice error: '+e.error); };
+    rec.onend=function(){ overlay.classList.remove('show'); };
+    rec.start();
+    overlay.onclick=function(){ try{ rec.stop(); }catch(e){} };
+  } catch(e){ overlay.classList.remove('show'); toast('Could not start mic'); }
+}
+function renderSummary(){
+  const meta='Started '+new Date(state.roundStart).toLocaleString()+' · Round #'+state.roundId;
+  $('summaryMeta').innerHTML='<div style="font-size:12px;opacity:0.7">'+meta+'</div>';
+  function holeGridHTML(range){
+    let out='<div class="grid-score"><div class="h">H</div>'+range.map(i=>'<div class="h">'+i+'</div>').join('')+'</div>';
+    out+='<div class="grid-score"><div class="h">Par</div>'+range.map(i=>{ const h=COURSE.holes.find(x=>x.hole===i); const cls=h.par===3?'par3':(h.par===5?'par5':''); return '<div class="'+cls+'">'+h.par+'</div>'; }).join('')+'</div>';
+    out+='<div class="grid-score"><div class="h">You</div>'+range.map(i=>{ const s=state.scores[i]||''; const h=COURSE.holes.find(x=>x.hole===i); const cls=h.par===3?'par3':(h.par===5?'par5':''); return '<div class="'+cls+'">'+s+'</div>'; }).join('')+'</div>';
+    return out;
+  }
+  $('scoreGrid').innerHTML=holeGridHTML([1,2,3,4,5,6,7,8,9])+'<div style="height:8px"></div>'+holeGridHTML([10,11,12,13,14,15,16,17,18]);
+  const tl=[].concat(state.shots.map(s=>Object.assign({},s,{kind:'shot'})), state.recs.map(r=>Object.assign({},r,{kind:'rec'}))).sort((a,b)=>a.ts.localeCompare(b.ts));
+  if(tl.length===0){ $('timelineBox').innerHTML='<div style="opacity:0.6;font-size:13px">No shots or recommendations yet.</div>'; }
+  else {
+    $('timelineBox').innerHTML=tl.map(it=>{
+      const t=new Date(it.ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+      if(it.kind==='shot') return '<div class="timeline-item shot"><span class="h">H'+it.hole+'</span> <span class="ts">'+t+'</span> — '+escapeHTML(it.transcript)+'</div>';
+      return '<div class="timeline-item rec"><span class="h">H'+it.hole+'</span> <span class="ts">'+t+'</span> — <i>"'+escapeHTML(it.transcript)+'"</i><br>→ '+escapeHTML(it.reply)+'</div>';
+    }).join('');
+  }
+  $('summaryModal').classList.add('show');
+}
+function buildHolePicker(){
+  const sel=$('holePick');
+  for(let i=1;i<=18;i++){ const h=COURSE.holes.find(x=>x.hole===i); const o=document.createElement('option'); o.value=String(i); o.textContent='Hole '+i+' · Par '+h.par; sel.appendChild(o); }
+  sel.addEventListener('change', function(e){ const v=e.target.value; if(v==='auto'){ state.autoHole=true; save(); toast('Auto hole detection on'); } else { setHole(parseInt(v),true); toast('Locked to hole '+v); } });
+  sel.value=state.autoHole?'auto':String(state.curHole);
+}
+function wire(){
+  $('micBtn').addEventListener('click', askCaddie);
+  $('logShotBtn').addEventListener('click', logShot);
+  $('summaryBtn').addEventListener('click', renderSummary);
+  $('closeSummary').addEventListener('click', function(){ $('summaryModal').classList.remove('show'); });
+  $('scoreUp').addEventListener('click', function(){ state.scores[state.curHole]=(state.scores[state.curHole]||0)+1; renderHole(); save(); });
+  $('scoreDown').addEventListener('click', function(){ state.scores[state.curHole]=Math.max(0,(state.scores[state.curHole]||0)-1); renderHole(); save(); });
+  $('endRoundBtn').addEventListener('click', function(){
+    if(!confirm('End this round and start a new one?')) return;
+    const hist=JSON.parse(localStorage.getItem('askcaddie.history')||'[]');
+    hist.push({ id:state.roundId, start:state.roundStart, end:new Date().toISOString(), scores:state.scores, shots:state.shots, recs:state.recs });
+    localStorage.setItem('askcaddie.history', JSON.stringify(hist.slice(-30)));
+    for(const k of Object.values(LS)) localStorage.removeItem(k);
+    state = { roundId:null, roundStart:null, curHole:1, autoHole:true, gps:state.gps, weather:state.weather, lastWeatherFetch:state.lastWeatherFetch, scores:{}, shots:[], recs:[] };
+    load(); renderHole();
+    $('replyBox').innerHTML='<div class="caddie">New round started. Tap the mic.</div>';
+    toast('New round');
+  });
+}
+window.addEventListener('DOMContentLoaded', function(){
+  load(); buildHolePicker(); wire(); renderHole(); watchGPS(); fetchWeather();
+  if('speechSynthesis' in window){ window.speechSynthesis.getVoices(); window.speechSynthesis.onvoiceschanged=function(){}; }
+});
+document.addEventListener('touchend', function(e){ if(e.target.tagName==='BUTTON') e.preventDefault(); }, {passive:false});
+</script>
+</body>
+</html>
